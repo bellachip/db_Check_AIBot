@@ -16,20 +16,22 @@ sheet = ex["Sheet1"]
 j = 0
 
 
-def get_name():
-    for i in range(3):
-        if i >= 2:
-            ex_last = str(sheet['A' + str(i)].value).strip()
-            first_name_arr.append(ex_last)
-            ex_first = str(sheet['B' + str(i)].value).strip()
-            last_name_arr.append(ex_first)
-            # return last_name_arr, first_name_arr
+# same function
+# same function
+def get_name(r):
+    ex_last = str(r[0].value)
+    first_name_arr.append(ex_last)
+    ex_first = str(r[1].value)
+    last_name_arr.append(ex_first)
+    # return last_name_arr, first_name_arr
     return ex_last, ex_first
 
 
-# # returns last name array and first name array
+# returns last name array and first name array
 l, f = get_name()
-print(l)
+
+
+# print(l)
 
 
 # opening up connection, grabing the page
@@ -44,7 +46,7 @@ def b_url_check():
     years = page_soup.find_all("h3")
 
     table_rows = page_soup.findAll("div", {"class": "views-field views-field-title"})
-    print(table_rows)
+    # print(table_rows)
 
     for table_row in table_rows:
         names = table_row.a.text
@@ -65,10 +67,10 @@ def b_url_check():
 
 str_cat = l + " " + f
 first = b_url_check()
-print(str_cat)
 
-print(first)
-print()
+
+# print(str_cat)
+# print(first)
 
 
 # check if the scriped string is in the excel data
@@ -77,7 +79,6 @@ def is_name(a):
         rv = "Yes"
     else:
         rv = "No Results"
-
     return rv
 
 
@@ -87,7 +88,7 @@ def is_name(a):
 # checks if the person exists in the gov data base.
 def clr_check(c_check=is_name(str_cat)):
     # for word in c_check.split():
-    d2 = sheet['D2']  # should switch to the row number
+    d2 = row[3]  # should switch to the row number
     print(c_check)
     if c_check == 'No Results':
         no_results_cell = 'No Results'
@@ -98,6 +99,11 @@ def clr_check(c_check=is_name(str_cat)):
     return d2.value
 
 
-clr_check()
+for row in range(2, sheet.max_row + 1):
+    get_name(row)
+
+#
+# for row in sheet.iter_rows:
+#     clr_check()
 
 ex.save('db_check.xlsx')
