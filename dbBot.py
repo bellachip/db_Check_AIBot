@@ -4,11 +4,14 @@ import os
 from docx import Document
 from docx.shared import Inches
 import openpyxl
+from openpyxl.cell import cell
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from urllib.request import urlopen as uReq
 from bs4 import BeautifulSoup as soup
 from docx.oxml.shared import OxmlElement, qn
+import datetime
+from datetime import timedelta
 
 # directory
 os.chdir('C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot')
@@ -40,6 +43,7 @@ new_arr_f = []
 ex_name = 'db_check.xlsx'
 ex = openpyxl.load_workbook(ex_name)
 sheet = ex["Sheet1"]
+b_sheet = ex['sheet2']
 
 
 def create_doc(first_name_docx, last_name_docx, a_res_value, b_res_value):
@@ -155,7 +159,7 @@ def clearance_check(url, last_name_search, first_name_search):
     # opening url and do the search
     # driver = webdriver.Chrome('C:\\Users\\yangb\\Desktop\\chromedriver.exe')
     # driver.get(url)
-    print(driver.current_url)
+    # print(driver.current_url)
     # finds the sesarch bars for last name and first name
     last_name = driver.find_element_by_id('ctl00_cpExclusions_txtSPLastName')
     first_name = driver.find_element_by_id('ctl00_cpExclusions_txtSPFirstName')
@@ -182,8 +186,6 @@ def clearance_check(url, last_name_search, first_name_search):
         # gets the rows
         rows = page_soup.find("table", {"class": "leie_search_results"}).find("tbody").findAll("tr")
 
-        i = 1
-
         # iterate through each row
         for row in rows:
             cols = row.findAll("td")
@@ -193,6 +195,7 @@ def clearance_check(url, last_name_search, first_name_search):
             no_results = "Yes"
 
     return no_results
+
 
 # opening up connection, grabing the page
 def b_url_check():
@@ -220,9 +223,9 @@ def b_url_check():
 # check if the scriped string is in the excel data
 def is_name(a, fir):
     if a in fir:
-        rv = "yes, individual appears on this list"
+        rv = "Yes"
     else:
-        rv = "No, individual is not listed"
+        rv = "No Results"
     return rv
 
 
@@ -230,7 +233,7 @@ def is_name(a, fir):
 def clr_check(c_check, r, url_col):
     # for word in c_check.split():
     c2 = r[url_col]  # should switch to the row number
-    print(c_check)
+    # print(c_check)
     if c_check == 'No Results':
         no_results_cell = 'No, individual is not listed'
         c2.value = no_results_cell
@@ -240,20 +243,100 @@ def clr_check(c_check, r, url_col):
     return c2.value
 
 
+counter = 0
+
+
+def insert_date(r, date_col):
+    d = datetime.datetime.today()
+
+    r[date_col].value = d
+    r[date_col + 1].value = d + timedelta(days=366)
+    return r[date_col].value, r[date_col + 1].value
+
+
+# counter = 1
+
+
+# def create_rejected_sheet(r, url_col, rejected_sheet):
+#     if str(r[url_col].value) == 'No, individual is not listed':
+#         for cell.value in rejected_sheet['A']:
+#             if cell.value is None:
+#                 cell.value = r[url_col].value
+#
+#             else:
+#                 i + 1
+#                 break;
+#     else:
+#         return None
+
+
 k = 1
+
+
+# def copyRange(startCol, startRow, endCol, endRow, sheet):
+# rangeSelected=[]
+# for i in range(startRow, endRow +1, 1):
+#     rowSelected =[]
+#     for j in range(startCol, endCol+1, 1):
+#         rowSelected.append(sheet.cell(row = i, column =j).value)
+#         rangeSelected.append(rowSelected)
+# return rangeSelected
+
+def check_row_isempty(r):
+    # for num, r in enumerate(b_sheet.iter_rows()):
+    # for row_cells in b_sheet.iter_rows(min_col=1, max_col=1):
+    #     for cell in row_cells:
+    #         if cell.value is None:
+    #             return row_cells
+    #         else:
+    #             break
+
+    b_sheet.cell(row=b_sheet.max_row + 1, column=1).value = str(r[0].value)
+
+    # print(row_cells.index)
+
+            # for cell in row_cells:
+        #     print('%s: cell.value=%s' % (cell, cell.value))
+
+
+
+
+
+
+
+
+def cr(r, r2):
+      # column numbersr
+    # print(r)
+
+        # sheet.c(row=i, column=j).value = sheet_b.c(row=i, colmn=j).value
+    ex.save(ex_name)
+
 
 for i, j in enumerate(sheet.iter_rows()):
     if i == 0:
         continue
 
+    print(i)
+
+    # gets the last name first name string
     l, f = get_name(j)
     chk = clearance_check(r_url, l, f)
     driver.save_screenshot(f + ".png")
-    clr_check(chk, j, 7)
+    clr_check(chk, j, 6)
+
+    check_row_isempty(j)
+    # if check_row_isempty() != -1:
+    #
+    #     cr(j, check_row_isempty())
+    # create_rejected_sheet(j, 7, ex['Not_Debared'])
 
     str_cat = l + ' ' + f
     first = b_url_check()
+    # print(is_name(str_cat, first))
     clr_check(is_name(str_cat, first), j, 7)
+
+    insert_date(j, 2)
     c_cell = str(sheet['G' + str(i)].value)
     d_cell = str(sheet['H' + str(i)].value)
     create_doc(f, l, c_cell, d_cell)
