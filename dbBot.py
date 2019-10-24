@@ -4,7 +4,6 @@ import os
 from docx import Document
 from docx.shared import Inches
 import openpyxl
-from openpyxl.cell import cell
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from urllib.request import urlopen as uReq
@@ -37,6 +36,7 @@ else:
 
 driver = webdriver.Chrome('C:\\Users\\yangb\\Desktop\\chromedriver.exe')
 
+driver.set_window_size(1100, 1000) #ideal was 1100, 1500
 first_name_arr = []
 last_name_arr = []
 new_arr_f = []
@@ -46,7 +46,10 @@ sheet = ex["Sheet1"]
 b_sheet = ex['sheet2']
 
 
-def create_doc(first_name_docx, last_name_docx, a_res_value, b_res_value):
+def create_doc(first_name_docx, last_name_docx, institution, city_state, contributer, date_checked, a_res_value,
+               ):
+    d = datetime.datetime.today()
+    date_var = d.strftime("%d-%B-%Y %H:%M:%S")
     document = Document()
     document.add_heading('Debarment Check', 0)
     p = document.add_paragraph(
@@ -55,14 +58,12 @@ def create_doc(first_name_docx, last_name_docx, a_res_value, b_res_value):
 
     records = (
         ('Author Name', first_name_docx + ' ' + last_name_docx),
-        ('Name of Institution', ' '),
-        ('City, State', '')
+        ('Name of Institution', institution),
+        ('City, State', city_state)
     )
 
     debarment_list = (
         ('Office of Inspectors General LIst of Excluded Individuals.', a_res_value),
-        ('System for Award Management', b_res_value),
-        ('Office of Research Integrity', '')
     )
 
     table = document.add_table(rows=1, cols=2)
@@ -76,7 +77,7 @@ def create_doc(first_name_docx, last_name_docx, a_res_value, b_res_value):
         row_cells[0].text = qty
         row_cells[1].text = id
 
-    document.add_paragraph('\n')
+    document.add_paragraph('')
 
     b_table = document.add_table(rows=1, cols=2)
     b_table.style = 'Table Grid'
@@ -92,13 +93,15 @@ def create_doc(first_name_docx, last_name_docx, a_res_value, b_res_value):
     document.add_paragraph(
         '\nIf the potential author is listed on any of the above, they may not be invited to author a '
         'publication sponsored by Genzyme or Sanofi; advise publication lead of findings of this '
-        'search.\n')
+        'search.')
     document.add_paragraph(
         'Once the debarment check has been completed, upload this document to the appropriate record '
-        'in Datavision.\n')
-    completion = document.add_paragraph('Debarment check completed by:\n')
-    completion.add_run('Debarment').bold = True
-    document.add_paragraph('Date check completed:\n')
+        'in Datavision.')
+    completion = document.add_paragraph('')
+
+    completion.add_run('Debarment check completed by: ' + contributer + '\n').bold = True
+    # document.add_paragraph()
+    completion.add_run('Date check completed: ' + date_var + '\n').bold = True
 
     document.add_picture(first_name_docx + '.png', width=Inches(6))
 
@@ -133,7 +136,7 @@ def create_doc(first_name_docx, last_name_docx, a_res_value, b_res_value):
 
     document.add_page_break()
 
-    document.save(first_name_docx + '.docx')
+    document.save(last_name_docx + '_' + first_name_docx + '_' + d.strftime('%d_%m_%Y') + '.docx')
 
 
 # get name of one row
@@ -145,6 +148,26 @@ def get_name(r):
     last_name_arr.append(ex_first)
     # return last_name_arr, first_name_arr
     return ex_last, ex_first
+
+
+def get_institution(r):
+    institute = str(r[4].value)
+    return institute
+
+
+def get_city_state(r):
+    location = str(r[5].value)
+    return location
+
+
+def get_contributer(r):
+    contributer = str(r[7].value)
+    return contributer
+
+
+def get_date(r):
+    get_date = str(r[2].value)
+    return get_date
 
 
 # will iterate through these urls
@@ -248,7 +271,6 @@ counter = 0
 
 def insert_date(r, date_col):
     d = datetime.datetime.today()
-
     r[date_col].value = d
     r[date_col + 1].value = d + timedelta(days=366)
     return r[date_col].value, r[date_col + 1].value
@@ -282,7 +304,7 @@ k = 1
 #         rangeSelected.append(rowSelected)
 # return rangeSelected
 
-def check_row_isempty(r):
+def check_row_isempty(r, inc, dec):
     # for num, r in enumerate(b_sheet.iter_rows()):
     # for row_cells in b_sheet.iter_rows(min_col=1, max_col=1):
     #     for cell in row_cells:
@@ -295,21 +317,15 @@ def check_row_isempty(r):
 
     # print(row_cells.index)
 
-            # for cell in row_cells:
-        #     print('%s: cell.value=%s' % (cell, cell.value))
-
-
-
-
-
-
+    # for cell in row_cells:
+    #     print('%s: cell.value=%s' % (cell, cell.value))
 
 
 def cr(r, r2):
-      # column numbersr
+    # column numbersr
     # print(r)
 
-        # sheet.c(row=i, column=j).value = sheet_b.c(row=i, colmn=j).value
+    # sheet.c(row=i, column=j).value = sheet_b.c(row=i, colmn=j).value
     ex.save(ex_name)
 
 
@@ -325,21 +341,22 @@ for i, j in enumerate(sheet.iter_rows()):
     driver.save_screenshot(f + ".png")
     clr_check(chk, j, 6)
 
-    check_row_isempty(j)
+    # check_row_isempty(j)
     # if check_row_isempty() != -1:
     #
     #     cr(j, check_row_isempty())
     # create_rejected_sheet(j, 7, ex['Not_Debared'])
 
-    str_cat = l + ' ' + f
-    first = b_url_check()
-    # print(is_name(str_cat, first))
-    clr_check(is_name(str_cat, first), j, 7)
+    # str_cat = l + ' ' + f
+    # first = b_url_check()
+    # # print(is_name(str_cat, first))
+    # clr_check(is_name(str_cat, first), j, 7)
 
     insert_date(j, 2)
     c_cell = str(sheet['G' + str(i)].value)
     d_cell = str(sheet['H' + str(i)].value)
-    create_doc(f, l, c_cell, d_cell)
+    print(c_cell)
+    create_doc(f, l, get_institution(j), get_city_state(j), get_contributer(j), get_date(j), str(j[6].value))
 
     ex.save('db_check.xlsx')
 
