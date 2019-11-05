@@ -10,68 +10,93 @@ from urllib.request import urlopen as uReq
 from bs4 import BeautifulSoup as soup
 from docx.oxml.shared import OxmlElement, qn
 import datetime
+import random
 from datetime import timedelta
 
-# directory
+# change directory
 os.chdir('C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot')
+
 
 # define the name of the directory to be created
 # directory structure for screenshots and files
-debarment_file_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Debarment_files'
-screenshots_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Screenshots'
 
-try:
-    os.mkdir(screenshots_path)
-except OSError:
-    print("Creation of the directory %s failed" % screenshots_path)
-else:
-    print("Successfully created the directory %s " % screenshots_path)
+def directory_structure(iter_rand):
+    debarment_file_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Debarment_files' + iter_rand
+    screenshots_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Screenshots' + iter_rand
 
-try:
-    os.mkdir(debarment_file_path)
-except OSError:
-    print("Creation of the directory %s failed" % debarment_file_path)
-else:
-    print("Successfully created the directory %s " % debarment_file_path)
+    # error handlers for creating directory for screenshots and debarment file
+    try:
+        os.mkdir(screenshots_path)
+    except OSError:
+        print("Creation of the directory %s failed" % screenshots_path)
+    else:
+        print("Successfully created the directory %s " % screenshots_path)
 
+    try:
+        os.mkdir(debarment_file_path)
+    except OSError:
+        print("Creation of the directory %s failed" % debarment_file_path)
+    else:
+        print("Successfully created the directory %s " % debarment_file_path)
+
+
+# get webdriver for chrome chromedriver.exe
 driver = webdriver.Chrome('C:\\Users\\yangb\\Desktop\\chromedriver.exe')
 
-driver.set_window_size(1100, 1000) #ideal was 1100, 1500
+# sets the window size. This size is specified from screenshot reasons
+driver.set_window_size(1100, 1000)  # ideal was 1100, 1500
 first_name_arr = []
 last_name_arr = []
 new_arr_f = []
-ex_name = 'db_check.xlsx'
-ex = openpyxl.load_workbook(ex_name)
-sheet = ex["Sheet1"]
-b_sheet = ex['sheet2']
+ex_name = 'db_check.xlsx'  # excel file name (database)
+ex = openpyxl.load_workbook(ex_name)  # opens the excel
+
+sheet = ex["Sheet1"]  # sheet one for main database
 
 
+# b_sheet = ex['sheet2']  # sheet two for skipped people
+
+# b_sheet.cell(row=b_sheet.max_row, column=1).value = 'Not on the list'
+def create_sheet():
+    if 'sheet2' not in ex.sheetnames:
+        ex.create_sheet('sheet2')
+        ex.save(ex_name)
+    b_sheet = ex['sheet2']
+    return b_sheet
+
+
+# create_doc does the functionality does the job of automating generation of debarment word files for each author.
 def create_doc(first_name_docx, last_name_docx, institution, city_state, contributer, date_checked, a_res_value,
+               iter_rand, timestamp_res
                ):
-    d = datetime.datetime.today()
-    date_var = d.strftime("%d-%B-%Y %H:%M:%S")
-    document = Document()
-    document.add_heading('Debarment Check', 0)
+    d = datetime.datetime.today()  # current date
+    date_var = d.strftime("%d-%B-%Y %H:%M:%S")  # variable for creation date
+    document = Document()  # generate document
+    document.add_heading('Debarment Check', 0)  # header
     p = document.add_paragraph(
         'Prior to being invited to participate in development/authoring of a publication sponsored '
         'by Genzyme/Sanofi, a debarment check must be completed for each US author.')
 
+    # table 1 for author name, name of institution
     records = (
         ('Author Name', first_name_docx + ' ' + last_name_docx),
         ('Name of Institution', institution),
         ('City, State', city_state)
     )
 
+    # data structure for table 2.
     debarment_list = (
         ('Office of Inspectors General LIst of Excluded Individuals.', a_res_value),
     )
 
+    # adds table 1
     table = document.add_table(rows=1, cols=2)
     table.style = 'Table Grid'
     hdr_cells = table.rows[0].cells
     hdr_cells[0].text = 'Information'
     hdr_cells[1].text = 'Id'
 
+    # iterates through the table and the list in records data structure
     for qty, id in records:
         row_cells = table.add_row().cells
         row_cells[0].text = qty
@@ -103,8 +128,8 @@ def create_doc(first_name_docx, last_name_docx, institution, city_state, contrib
     # document.add_paragraph()
     completion.add_run('Date check completed: ' + date_var + '\n').bold = True
 
-    document.add_picture(first_name_docx + '.png', width=Inches(6))
-
+    document.add_picture('.\\Screenshots\\' + last_name_docx + '_' + first_name_docx + '.png', width=Inches(6))
+    document.add_paragraph(timestamp_res)
     # Set a cell background (shading) color to RGB D9D9D9.
     a_cell_1 = table.cell(0, 0)
     a_co = a_cell_1._tc.get_or_add_tcPr()
@@ -136,7 +161,8 @@ def create_doc(first_name_docx, last_name_docx, institution, city_state, contrib
 
     document.add_page_break()
 
-    document.save(last_name_docx + '_' + first_name_docx + '_' + d.strftime('%d_%m_%Y') + '.docx')
+    document.save(
+        '.\\Debarment_files' + iter_rand + '\\' + last_name_docx + '_' + first_name_docx + '_' + d.strftime('%d_%m_%Y') + '.docx')
 
 
 # get name of one row
@@ -150,38 +176,37 @@ def get_name(r):
     return ex_last, ex_first
 
 
+# gets institution
 def get_institution(r):
     institute = str(r[4].value)
     return institute
 
 
+# gets the city state
 def get_city_state(r):
     location = str(r[5].value)
     return location
 
 
+# gets the name of the contributer
 def get_contributer(r):
     contributer = str(r[7].value)
     return contributer
 
 
+# gets the date
 def get_date(r):
     get_date = str(r[2].value)
     return get_date
 
 
-# will iterate through these urls
-# store_urls = ['https://exclusions.oig.hhs.gov/', 'https://ori.hhs.gov/case_summary']
-
+# url 1 for search
 r_url = 'https://exclusions.oig.hhs.gov/'
 
 
 # does the job of clearnace checking for the first url
-def clearance_check(url, last_name_search, first_name_search):
+def clearance_check_scrape(url, last_name_search, first_name_search):
     driver.get(url)
-    # opening url and do the search
-    # driver = webdriver.Chrome('C:\\Users\\yangb\\Desktop\\chromedriver.exe')
-    # driver.get(url)
     # print(driver.current_url)
     # finds the sesarch bars for last name and first name
     last_name = driver.find_element_by_id('ctl00_cpExclusions_txtSPLastName')
@@ -190,7 +215,7 @@ def clearance_check(url, last_name_search, first_name_search):
     first_name.send_keys(first_name_search)
     last_name.send_keys(Keys.ENTER)
     # first_name.send_keys(Keys.ENTER)
-    driver.save_screenshot("screenshot.png")
+
     # opening up connection, grabbing the search results page
     page_html = driver.page_source
     # driver.close()
@@ -202,7 +227,9 @@ def clearance_check(url, last_name_search, first_name_search):
     # gets the no results text
     # if "No Results" is in the page then return no results variable
     noe = page_soup.find("div", {"id": "ctl00_cpExclusions_pnlEmpty"})
-
+    search_conducted = page_soup.find("div", {"class": "timeStampResults"})
+    search_timestamp = search_conducted.p.text
+    print(search_timestamp)
     if noe is not None:
         no_results = "No Results"
     else:  # else then that means there is results for the person so scrape the info of the person
@@ -217,10 +244,10 @@ def clearance_check(url, last_name_search, first_name_search):
         if cell.find(last_name_search.upper()):
             no_results = "Yes"
 
-    return no_results
+    return no_results, search_timestamp
 
 
-# opening up connection, grabing the page
+# opening up connection, grabbing the page
 def b_url_check():
     url_b = 'https://ori.hhs.gov/case_summary'
     u_client = uReq(url_b)
@@ -294,31 +321,15 @@ def insert_date(r, date_col):
 
 k = 1
 
+b_sheet = create_sheet()
 
-# def copyRange(startCol, startRow, endCol, endRow, sheet):
-# rangeSelected=[]
-# for i in range(startRow, endRow +1, 1):
-#     rowSelected =[]
-#     for j in range(startCol, endCol+1, 1):
-#         rowSelected.append(sheet.cell(row = i, column =j).value)
-#         rangeSelected.append(rowSelected)
-# return rangeSelected
 
-def check_row_isempty(r, inc, dec):
-    # for num, r in enumerate(b_sheet.iter_rows()):
-    # for row_cells in b_sheet.iter_rows(min_col=1, max_col=1):
-    #     for cell in row_cells:
-    #         if cell.value is None:
-    #             return row_cells
-    #         else:
-    #             break
-
-    b_sheet.cell(row=b_sheet.max_row + 1, column=1).value = str(r[0].value)
-
-    # print(row_cells.index)
-
-    # for cell in row_cells:
-    #     print('%s: cell.value=%s' % (cell, cell.value))
+# fills in the sheet b
+def check_row_isempty(r):
+    if str(r[6].value) == 'No, individual is not listed':
+        b_sheet.cell(row=b_sheet.max_row + 1, column=1).value = str(r[0].value)
+        for num in range(2, 7):
+            b_sheet.cell(row=b_sheet.max_row, column=num).value = str(r[num - 1].value)
 
 
 def cr(r, r2):
@@ -329,35 +340,46 @@ def cr(r, r2):
     ex.save(ex_name)
 
 
-for i, j in enumerate(sheet.iter_rows()):
-    if i == 0:
-        continue
+def gener_tasks(iter_rand):
+    for i, j in enumerate(sheet.iter_rows()):
+        if i == 0:
+            continue
 
-    print(i)
+        print(i)
+        create_sheet()
+        # gets the last name first name string
+        l, f = get_name(j)
+        chk, timestamp_results = clearance_check_scrape(r_url, l, f)
+        driver.save_screenshot(".\\Screenshots" + iter_rand + "\\" + l + "_" + f + ".png")
+        clr_check(chk, j, 6)
 
-    # gets the last name first name string
-    l, f = get_name(j)
-    chk = clearance_check(r_url, l, f)
-    driver.save_screenshot(f + ".png")
-    clr_check(chk, j, 6)
+        check_row_isempty(j)
+        # if check_row_isempty() != -1:
+        #
+        #     cr(j, check_row_isempty())
+        # create_rejected_sheet(j, 7, ex['Not_Debared'])
 
-    # check_row_isempty(j)
-    # if check_row_isempty() != -1:
-    #
-    #     cr(j, check_row_isempty())
-    # create_rejected_sheet(j, 7, ex['Not_Debared'])
+        # str_cat = l + ' ' + f
+        # first = b_url_check()
+        # # print(is_name(str_cat, first))
+        # clr_check(is_name(str_cat, first), j, 7)
 
-    # str_cat = l + ' ' + f
-    # first = b_url_check()
-    # # print(is_name(str_cat, first))
-    # clr_check(is_name(str_cat, first), j, 7)
+        insert_date(j, 2)
+        c_cell = str(sheet['G' + str(i)].value)
+        d_cell = str(sheet['H' + str(i)].value)
+        print(c_cell)
+        create_doc(f, l, get_institution(j), get_city_state(j), get_contributer(j), get_date(j), str(j[6].value),
+                   iter_rand, timestamp_results)
 
-    insert_date(j, 2)
-    c_cell = str(sheet['G' + str(i)].value)
-    d_cell = str(sheet['H' + str(i)].value)
-    print(c_cell)
-    create_doc(f, l, get_institution(j), get_city_state(j), get_contributer(j), get_date(j), str(j[6].value))
+        ex.save('db_check.xlsx')
 
-    ex.save('db_check.xlsx')
 
+def execute_process():
+    rand = str(random.random())
+
+    directory_structure(rand)
+    gener_tasks(rand)
+
+
+execute_process()
 driver.close()
