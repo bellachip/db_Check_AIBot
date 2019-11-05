@@ -17,6 +17,7 @@ j = 0
 
 
 # same function
+# same function
 def get_name(r):
     ex_last = str(r[0].value)
     first_name_arr.append(ex_last)
@@ -24,6 +25,13 @@ def get_name(r):
     last_name_arr.append(ex_first)
     # return last_name_arr, first_name_arr
     return ex_last, ex_first
+
+
+# returns last name array and first name array
+l, f = get_name()
+
+
+# print(l)
 
 
 # opening up connection, grabing the page
@@ -46,22 +54,41 @@ def b_url_check():
         new_arr_f.append(new_name)
         # new_arr_f.append(new_name.split()[0])
         # new_arr_l.append(new_name.split()[1])
+
     return new_arr_f
 
 
+# c_arr = []
+# for i in range(len(l)):
+#     str_cat = str(f[i]) + " " + str(l[i])
+#     c_arr.append(str_cat)
+
+# returns the array of the excel strings
+
+str_cat = l + " " + f
+first = b_url_check()
+
+
+# print(str_cat)
+# print(first)
+
+
 # check if the scriped string is in the excel data
-def is_name(a, fir):
-    if a in fir:
+def is_name(a):
+    if str_cat in first:
         rv = "Yes"
     else:
         rv = "No Results"
     return rv
 
 
+# print(first)
+
+
 # checks if the person exists in the gov data base.
-def clr_check(c_check, r):
+def clr_check(c_check=is_name(str_cat)):
     # for word in c_check.split():
-    d2 = r[3]  # should switch to the row number
+    d2 = row[3]  # should switch to the row number
     print(c_check)
     if c_check == 'No Results':
         no_results_cell = 'No Results'
@@ -72,15 +99,11 @@ def clr_check(c_check, r):
     return d2.value
 
 
-def main():
-    for i, row in enumerate(sheet.iter_rows()):
-        if i == 0:
-            continue
-        l, f = get_name(row)
-        str_cat = l + ' ' + f
-        first = b_url_check()
-        clr_check(is_name(str_cat, first), row)
-        ex.save('db_check.xlsx')
+for row in range(2, sheet.max_row + 1):
+    get_name(row)
 
+#
+# for row in sheet.iter_rows:
+#     clr_check()
 
-main()
+ex.save('db_check.xlsx')

@@ -1,233 +1,385 @@
 #!/bin/python
 from bs4 import BeautifulSoup as soup
 import os
+from docx import Document
+from docx.shared import Inches
 import openpyxl
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from urllib.request import urlopen as uReq
 from bs4 import BeautifulSoup as soup
+from docx.oxml.shared import OxmlElement, qn
+import datetime
+import random
+from datetime import timedelta
 
-# directory
+# change directory
 os.chdir('C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot')
+
+
+# define the name of the directory to be created
+# directory structure for screenshots and files
+
+def directory_structure(iter_rand):
+    debarment_file_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Debarment_files' + iter_rand
+    screenshots_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Screenshots' + iter_rand
+
+    # error handlers for creating directory for screenshots and debarment file
+    try:
+        os.mkdir(screenshots_path)
+    except OSError:
+        print("Creation of the directory %s failed" % screenshots_path)
+    else:
+        print("Successfully created the directory %s " % screenshots_path)
+
+    try:
+        os.mkdir(debarment_file_path)
+    except OSError:
+        print("Creation of the directory %s failed" % debarment_file_path)
+    else:
+        print("Successfully created the directory %s " % debarment_file_path)
+
+
+# get webdriver for chrome chromedriver.exe
 driver = webdriver.Chrome('C:\\Users\\yangb\\Desktop\\chromedriver.exe')
+
+# sets the window size. This size is specified from screenshot reasons
+driver.set_window_size(1100, 1000)  # ideal was 1100, 1500
 first_name_arr = []
 last_name_arr = []
-ex_name = 'db_check.xlsx'
-ex = openpyxl.load_workbook(ex_name)
-sheet = ex["Sheet1"]
+new_arr_f = []
+ex_name = 'db_check.xlsx'  # excel file name (database)
+ex = openpyxl.load_workbook(ex_name)  # opens the excel
+
+sheet = ex["Sheet1"]  # sheet one for main database
 
 
-# getname
-def get_name():
-    for i in range(3):
-        if i >= 2:
-            ex_last = sheet['A' + str(i)].value
-            first_name_arr.append(ex_last)
-            ex_first = sheet['B' + str(i)].value
-            last_name_arr.append(ex_first)
-            # return last_name_arr, first_name_arr
-            return ex_last, ex_first
+# b_sheet = ex['sheet2']  # sheet two for skipped people
+
+# b_sheet.cell(row=b_sheet.max_row, column=1).value = 'Not on the list'
+def create_sheet():
+    if 'sheet2' not in ex.sheetnames:
+        ex.create_sheet('sheet2')
+        ex.save(ex_name)
+    b_sheet = ex['sheet2']
+    return b_sheet
 
 
-# # returns last name array and first name array
-l, f = get_name()
-# opes the page
-store_urls = ['https://exclusions.oig.hhs.gov/', 'https://ori.hhs.gov/case_summary']
+# create_doc does the functionality does the job of automating generation of debarment word files for each author.
+def create_doc(first_name_docx, last_name_docx, institution, city_state, contributer, date_checked, a_res_value,
+               iter_rand, timestamp_res
+               ):
+    d = datetime.datetime.today()  # current date
+    date_var = d.strftime("%d-%B-%Y %H:%M:%S")  # variable for creation date
+    document = Document()  # generate document
+    document.add_heading('Debarment Check', 0)  # header
+    p = document.add_paragraph(
+        'Prior to being invited to participate in development/authoring of a publication sponsored '
+        'by Genzyme/Sanofi, a debarment check must be completed for each US author.')
+
+    # table 1 for author name, name of institution
+    records = (
+        ('Author Name', first_name_docx + ' ' + last_name_docx),
+        ('Name of Institution', institution),
+        ('City, State', city_state)
+    )
+
+    # data structure for table 2.
+    debarment_list = (
+        ('Office of Inspectors General LIst of Excluded Individuals.', a_res_value),
+    )
+
+    # adds table 1
+    table = document.add_table(rows=1, cols=2)
+    table.style = 'Table Grid'
+    hdr_cells = table.rows[0].cells
+    hdr_cells[0].text = 'Information'
+    hdr_cells[1].text = 'Id'
+
+    # iterates through the table and the list in records data structure
+    for qty, id in records:
+        row_cells = table.add_row().cells
+        row_cells[0].text = qty
+        row_cells[1].text = id
+
+    document.add_paragraph('')
+
+    b_table = document.add_table(rows=1, cols=2)
+    b_table.style = 'Table Grid'
+    b_hdr_cells = b_table.rows[0].cells
+    b_hdr_cells[0].text = 'Debarment List'
+    b_hdr_cells[1].text = 'Findings'
+
+    for d_list, findings in debarment_list:
+        b_row_cells = b_table.add_row().cells
+        b_row_cells[0].text = d_list
+        b_row_cells[1].text = findings
+
+    document.add_paragraph(
+        '\nIf the potential author is listed on any of the above, they may not be invited to author a '
+        'publication sponsored by Genzyme or Sanofi; advise publication lead of findings of this '
+        'search.')
+    document.add_paragraph(
+        'Once the debarment check has been completed, upload this document to the appropriate record '
+        'in Datavision.')
+    completion = document.add_paragraph('')
+
+    completion.add_run('Debarment check completed by: ' + contributer + '\n').bold = True
+    # document.add_paragraph()
+    completion.add_run('Date check completed: ' + date_var + '\n').bold = True
+
+    document.add_picture('.\\Screenshots\\' + last_name_docx + '_' + first_name_docx + '.png', width=Inches(6))
+    document.add_paragraph(timestamp_res)
+    # Set a cell background (shading) color to RGB D9D9D9.
+    a_cell_1 = table.cell(0, 0)
+    a_co = a_cell_1._tc.get_or_add_tcPr()
+    a_cell_2 = table.cell(0, 1)
+    a_ct = a_cell_2._tc.get_or_add_tcPr()
+
+    a_cell_color_1 = OxmlElement('w:shd')
+    a_cell_color_1.set(qn('w:fill'), '#94C167')
+
+    a_cell_color_2 = OxmlElement('w:shd')
+    a_cell_color_2.set(qn('w:fill'), '#94C167')
+
+    a_co.append(a_cell_color_1)
+    a_ct.append(a_cell_color_2)
+
+    b_cell_1 = b_table.cell(0, 0)
+    b_co = b_cell_1._tc.get_or_add_tcPr()
+    b_cell_2 = b_table.cell(0, 1)
+    b_ct = b_cell_2._tc.get_or_add_tcPr()
+
+    b_cell_color_1 = OxmlElement('w:shd')
+    b_cell_color_1.set(qn('w:fill'), '#94C167')
+
+    b_cell_color_2 = OxmlElement('w:shd')
+    b_cell_color_2.set(qn('w:fill'), '#94C167')
+
+    b_co.append(b_cell_color_1)
+    b_ct.append(b_cell_color_2)
+
+    document.add_page_break()
+
+    document.save(
+        '.\\Debarment_files' + iter_rand + '\\' + last_name_docx + '_' + first_name_docx + '_' + d.strftime('%d_%m_%Y') + '.docx')
+
+
+# get name of one row
+# same function
+def get_name(r):
+    ex_last = str(r[0].value)
+    first_name_arr.append(ex_last)
+    ex_first = str(r[1].value)
+    last_name_arr.append(ex_first)
+    # return last_name_arr, first_name_arr
+    return ex_last, ex_first
+
+
+# gets institution
+def get_institution(r):
+    institute = str(r[4].value)
+    return institute
+
+
+# gets the city state
+def get_city_state(r):
+    location = str(r[5].value)
+    return location
+
+
+# gets the name of the contributer
+def get_contributer(r):
+    contributer = str(r[7].value)
+    return contributer
+
+
+# gets the date
+def get_date(r):
+    get_date = str(r[2].value)
+    return get_date
+
+
+# url 1 for search
+r_url = 'https://exclusions.oig.hhs.gov/'
 
 
 # does the job of clearnace checking for the first url
-def clearance_check(url, last_name_search, first_name_search):
-    if url == 'https://exclusions.oig.hhs.gov/':
-        driver.get(url)
-        print(driver.current_url)
-        # finds the sesarch bars for last name and first name
-        last_name = driver.find_element_by_id('ctl00_cpExclusions_txtSPLastName')
-        first_name = driver.find_element_by_id('ctl00_cpExclusions_txtSPFirstName')
-        last_name.send_keys(last_name_search)
-        first_name.send_keys(first_name_search)
-        last_name.send_keys(Keys.ENTER)
-        # first_name.send_keys(Keys.ENTER)
+def clearance_check_scrape(url, last_name_search, first_name_search):
+    driver.get(url)
+    # print(driver.current_url)
+    # finds the sesarch bars for last name and first name
+    last_name = driver.find_element_by_id('ctl00_cpExclusions_txtSPLastName')
+    first_name = driver.find_element_by_id('ctl00_cpExclusions_txtSPFirstName')
+    last_name.send_keys(last_name_search)
+    first_name.send_keys(first_name_search)
+    last_name.send_keys(Keys.ENTER)
+    # first_name.send_keys(Keys.ENTER)
 
-        # opening up connection, grabing the page
-        # uClient = uReq(driver.page_source)
-        page_html = driver.page_source
-        # uClient.close()
+    # opening up connection, grabbing the search results page
+    page_html = driver.page_source
+    # driver.close()
+    # lxml parsing through the current results page
+    page_soup = soup(page_html, "lxml")
 
-        # lxml parsing
-        page_soup = soup(page_html, "lxml")
+    # Name = page_soup.find("div", {"id": "ctl00_cpExclusions_pnlEmpty"}).ul.li.text
 
-        # gets the name
-        # Name = page_soup.find("div", {"id": "ctl00_cpExclusions_pnlEmpty"}).ul.li.text
-        # gets the no results value
-        if page_soup.findAll(text="No Results"):
-            # no_results = page_soup.find("div", {"id": "ctl00_cpExclusions_pnlEmpty"}).div.text
-            no_results = "No Results"
-        else:
+    # gets the no results text
+    # if "No Results" is in the page then return no results variable
+    noe = page_soup.find("div", {"id": "ctl00_cpExclusions_pnlEmpty"})
+    search_conducted = page_soup.find("div", {"class": "timeStampResults"})
+    search_timestamp = search_conducted.p.text
+    print(search_timestamp)
+    if noe is not None:
+        no_results = "No Results"
+    else:  # else then that means there is results for the person so scrape the info of the person
+        # gets the rows
+        rows = page_soup.find("table", {"class": "leie_search_results"}).find("tbody").findAll("tr")
 
-            rows = page_soup.find("table", {"class": "leie_search_results"}).find("tbody").findAll("tr")
-            i = 1
-            for row in rows:
-                cols = row.findAll("td")
+        # iterate through each row
+        for row in rows:
+            cols = row.findAll("td")
+            for col in cols:
+                cell = col.text
+        if cell.find(last_name_search.upper()):
+            no_results = "Yes"
 
-                for col in cols:
-                    cell = col.text
+    return no_results, search_timestamp
 
-            if cell.find(last_name_search.upper()):
-                no_results = "Yes"
-        print(no_results)
-        return no_results
-    elif url == 'https://ori.hhs.gov/case_summary':
-        # opening up connection, grabing the page
-        u_client = uReq(url)
-        page_html = u_client.read()
-        u_client.close()
 
-        # html parsing
-        page_soup = soup(page_html, "html.parser")
-        table_rows = page_soup.find("div", {"class": "view view-case-summary view-id-case_summary view-display-id-page_1 js-view-dom-id-7529d8e4a9199a663e90df04a49d98be2a9f68a770b94b8a31d23f716b4e354f ui-accordion ui-widget ui-helper-reset"}).findAll("div", {"class": "views-content"})
+# opening up connection, grabbing the page
+def b_url_check():
+    url_b = 'https://ori.hhs.gov/case_summary'
+    u_client = uReq(url_b)
+    page_html = u_client.read()
+    u_client.close()
 
-        for table_row in table_rows:
-            year = table_row.find()
+    # html parsing
+    page_soup = soup(page_html, "html.parser")
+    years = page_soup.find_all("h3")
+
+    table_rows = page_soup.findAll("div", {"class": "views-field views-field-title"})
+    # print(table_rows)
+
+    for table_row in table_rows:
+        names = table_row.a.text
+        new_name = names.replace('Case Summary: ', '').replace(',', '')
+        new_arr_f.append(new_name)
+        # new_arr_f.append(new_name.split()[0])
+        # new_arr_l.append(new_name.split()[1])
+    return new_arr_f
+
+
+# check if the scriped string is in the excel data
+def is_name(a, fir):
+    if a in fir:
+        rv = "Yes"
+    else:
+        rv = "No Results"
+    return rv
 
 
 # checks if the person exists in the gov data base.
-def clr_check(c_check):
+def clr_check(c_check, r, url_col):
     # for word in c_check.split():
-    c2 = sheet['C2']  # should switch to the row number
-    print(c_check)
+    c2 = r[url_col]  # should switch to the row number
+    # print(c_check)
     if c_check == 'No Results':
-        no_results_cell = 'No Results'
+        no_results_cell = 'No, individual is not listed'
         c2.value = no_results_cell
     elif c_check == 'Yes':
-        c2.value = 'Yes'
+        c2.value = 'Yes, individual appears on this list'
 
     return c2.value
 
 
-for store_url in store_urls:
-    clearance_check(store_url, l, f)
-    clr_check(clearance_check(store_url, l, f))
+counter = 0
 
-ex.save('db_check.xlsx')
+
+def insert_date(r, date_col):
+    d = datetime.datetime.today()
+    r[date_col].value = d
+    r[date_col + 1].value = d + timedelta(days=366)
+    return r[date_col].value, r[date_col + 1].value
+
+
+# counter = 1
+
+
+# def create_rejected_sheet(r, url_col, rejected_sheet):
+#     if str(r[url_col].value) == 'No, individual is not listed':
+#         for cell.value in rejected_sheet['A']:
+#             if cell.value is None:
+#                 cell.value = r[url_col].value
+#
+#             else:
+#                 i + 1
+#                 break;
+#     else:
+#         return None
+
+
+k = 1
+
+b_sheet = create_sheet()
+
+
+# fills in the sheet b
+def check_row_isempty(r):
+    if str(r[6].value) == 'No, individual is not listed':
+        b_sheet.cell(row=b_sheet.max_row + 1, column=1).value = str(r[0].value)
+        for num in range(2, 7):
+            b_sheet.cell(row=b_sheet.max_row, column=num).value = str(r[num - 1].value)
+
+
+def cr(r, r2):
+    # column numbersr
+    # print(r)
+
+    # sheet.c(row=i, column=j).value = sheet_b.c(row=i, colmn=j).value
+    ex.save(ex_name)
+
+
+def gener_tasks(iter_rand):
+    for i, j in enumerate(sheet.iter_rows()):
+        if i == 0:
+            continue
+
+        print(i)
+        create_sheet()
+        # gets the last name first name string
+        l, f = get_name(j)
+        chk, timestamp_results = clearance_check_scrape(r_url, l, f)
+        driver.save_screenshot(".\\Screenshots" + iter_rand + "\\" + l + "_" + f + ".png")
+        clr_check(chk, j, 6)
+
+        check_row_isempty(j)
+        # if check_row_isempty() != -1:
+        #
+        #     cr(j, check_row_isempty())
+        # create_rejected_sheet(j, 7, ex['Not_Debared'])
+
+        # str_cat = l + ' ' + f
+        # first = b_url_check()
+        # # print(is_name(str_cat, first))
+        # clr_check(is_name(str_cat, first), j, 7)
+
+        insert_date(j, 2)
+        c_cell = str(sheet['G' + str(i)].value)
+        d_cell = str(sheet['H' + str(i)].value)
+        print(c_cell)
+        create_doc(f, l, get_institution(j), get_city_state(j), get_contributer(j), get_date(j), str(j[6].value),
+                   iter_rand, timestamp_results)
+
+        ex.save('db_check.xlsx')
+
+
+def execute_process():
+    rand = str(random.random())
+
+    directory_structure(rand)
+    gener_tasks(rand)
+
+
+execute_process()
 driver.close()
-
-# # # grabs each row
-# # rows = content.findAll("tr")
-# # # conts = page_soup.findAll("tr", {"class" :"bg-lighter-yellow"})
-# #
-# # # header for the csv file
-# # headers = "title, author, abstract_number, poster\n"
-# #
-# # # each link
-# # link = my_url + '\n'
-# #
-# # f.write(headers)
-# # f.write(link)
-# #
-# # # iterates through each row
-# # for row in rows:
-# #     # removes the header row in the table
-# #     if row.find("a") is None:
-# #         continue
-# #     if row.find("p") is None:
-# #         continue
-# #     if row.find("td", {"valign": "top"}) is None:
-# #         continue
-# #
-# #         # grabs the title
-# #     title = row.a.text
-# #
-# #     print(title)
-# #     # grabs the author
-# #     author = row.p.text
-# #
-# #     # grabs all the abstract container
-# #     abstract_con = row.findAll("td", {"valign": "top"})
-# #     # only grabs the text in the abstrac_con
-# #     abstract_number = abstract_con[2].p.text
-# #
-# #     # for identifying if its a poster or not
-# #     if abstract_number[0] == 'T':
-# #         poster = "yes"
-# #     else:
-# #         poster = "no"
-# #
-# ex = openpyxl.load_workbook('db_check.xlsx')
-# sheet = ex.get_sheet_by_name('Sheet1')
-
-# for rowOfCellObjects in sheet['A2':'B2']:
-#     for cellObj in rowOfCellObjects:
-# cellCord = cellObj.coordinate
-# cellVal = cellObj.value
-# first_name = sheet['A2']
-# last_name = sheet['B2']
-# driver.get(my_url)
-# driver.findElement(By.xpath("(//input[@id='ctl00_cpExclusions_txtSPLastName'])")).sendKeys(last_name)
-# driver.findElement(By.xpath("(//input[@id='ctl00_cpExclusions_txtSPFirstName'])")).sendKeys(last_name)
-
-
-# filename = "test.csv"
-# f = open(filename, "w")  # csvfile open
-#
-# # iterates through each link
-# #for i in range(len(url_nums)):
-# my_url = 'https://exclusions.oig.hhs.gov/'
-#
-# # opening up connection, grabing the page
-# uClient = uReq(my_url)
-# page_html = uClient.read()
-# uClient.close()
-#
-# # html parsing
-# page_soup = soup(page_html, "html.parser")
-#
-# print(page_soup)
-#
-# # # grabs table
-# # table = page_soup.find("table", {"class": "t4"})
-# # # grabs each row
-# # rows = table.findAll("tr")
-# # # conts = page_soup.findAll("tr", {"class" :"bg-lighter-yellow"})
-# #
-# # # header for the csv file
-# # headers = "title, author, abstract_number, poster\n"
-# #
-# # # each link
-# # link = my_url + '\n'
-# #
-# # f.write(headers)
-# # f.write(link)
-# #
-# # # iterates through each row
-# # for row in rows:
-# #     # removes the header row in the table
-# #     if row.find("a") is None:
-# #         continue
-# #     if row.find("p") is None:
-# #         continue
-# #     if row.find("td", {"valign": "top"}) is None:
-# #         continue
-# #
-# #         # grabs the title
-# #     title = row.a.text
-# #
-# #     print(title)
-# #     # grabs the author
-# #     author = row.p.text
-# #
-# #     # grabs all the abstract container
-# #     abstract_con = row.findAll("td", {"valign": "top"})
-# #     # only grabs the text in the abstrac_con
-# #     abstract_number = abstract_con[2].p.text
-# #
-# #     # for identifying if its a poster or not
-# #     if abstract_number[0] == 'T':
-# #         poster = "yes"
-# #     else:
-# #         poster = "no"
-# #
-# #     # write to the csv file
-# #     # strng handlers and concatenation
-# #     f.write(title.replace(",", "|") + "," + author.replace(",", "|") + "," + abstract_number + "," + poster + "\n")
-# f.close()  # file close
-#
