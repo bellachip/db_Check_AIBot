@@ -34,6 +34,39 @@ l, f = get_name()
 # print(l)
 
 
+
+# opening up connection, grabbing the page
+def b_url_check():
+    url_b = 'https://ori.hhs.gov/case_summary'
+    u_client = uReq(url_b)
+    page_html = u_client.read()
+    u_client.close()
+
+    # html parsing
+    page_soup = soup(page_html, "html.parser")
+    years = page_soup.find_all("h3")
+
+    table_rows = page_soup.findAll("div", {"class": "views-field views-field-title"})
+    # print(table_rows)
+
+    for table_row in table_rows:
+        names = table_row.a.text
+        new_name = names.replace('Case Summary: ', '').replace(',', '')
+        new_arr_f.append(new_name)
+        # new_arr_f.append(new_name.split()[0])
+        # new_arr_l.append(new_name.split()[1])
+    return new_arr_f
+
+
+# check if the scriped string is in the excel data
+def is_name(a, fir):
+    if a in fir:
+        rv = "Yes"
+    else:
+        rv = "No Results"
+    return rv
+
+
 # opening up connection, grabing the page
 def b_url_check():
     url = 'https://ori.hhs.gov/case_summary'
@@ -101,6 +134,16 @@ def clr_check(c_check=is_name(str_cat)):
 
 for row in range(2, sheet.max_row + 1):
     get_name(row)
+
+    # if check_row_isempty() != -1:
+    #
+    #     cr(j, check_row_isempty())
+    # create_rejected_sheet(j, 7, ex['Not_Debared'])
+
+    # str_cat = l + ' ' + f
+    # first = b_url_check()
+    # # print(is_name(str_cat, first))
+    # clr_check(is_name(str_cat, first), j, 7)
 
 #
 # for row in sheet.iter_rows:
