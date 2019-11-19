@@ -16,23 +16,32 @@ import shutil
 
 # change directory
 os.chdir('C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot')
-
 logf = open('C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\log_file.txt', 'w')
 
 
 # define the name of the directory to be created
 # directory structure for screenshots, files, and compeleted files
 def directory_structure(iter_rand):
-    debarment_file_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Debarment_files' + iter_rand
-    screenshots_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Screenshots' + iter_rand
-    completed_file_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Completed_files' + iter_rand
+    output = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Outputs_' + iter_rand
+    debarment_file_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Outputs_' + iter_rand + '\\Debarment_files' + iter_rand
+    screenshots_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Outputs_' + iter_rand + '\\Screenshots' + iter_rand
+    completed_file_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Outputs_' + iter_rand + '\\Completed_files' + iter_rand
 
     # error handlers for creating directory for screenshots and debarment file
+    try:
+        os.mkdir(output)
+    except OSError as e:
+        print(e)
+        logf.write('creation of the directory {0}:{1} failed\n'.format(str(output), str(e)))
+        # print("Creation of the directory %s failed" % screenshots_path)
+    else:
+        print("Successfully created the directory %s " % output)
+
     try:
         os.mkdir(screenshots_path)
     except OSError as e:
         print(e)
-        logf.write('creation of the directory {0}:{1} failed'.format(str(screenshots_path), str(e)))
+        logf.write('creation of the directory {0}:{1} failed\n'.format(str(screenshots_path), str(e)))
         # print("Creation of the directory %s failed" % screenshots_path)
     else:
         print("Successfully created the directory %s " % screenshots_path)
@@ -55,32 +64,34 @@ def directory_structure(iter_rand):
 # gets the input variable for the process execution (excel file, list of authors)
 def get_working_filename():
     if len(os.listdir('.\\working_dir')) == 0:
-        logf.write('empty directory')
+        logf.write('empty directory\n')
     elif len(os.listdir('.\\working_dir')) > 1:
-        print('too many files')
+        logf.write('too many files, one directory at a time\n')
     else:
         for file in os.listdir('.\\working_dir'):  # iterate through all the files
             if file.endswith('.xlsx'):  # identify if the file ends with.xlsx
                 move_file = os.path.join(".\\working_dir", file)  # gets the file in working directory
                 return move_file
             else:  # if file not ends with .xlsx then its not an excel file
-                print('not an excel file ')
+                logf.write('not an excel file\n')
 
 
 # get file and move file
 def mv_dir_structure(iter_rand):
-    # move the current file to the completed directory
-    shutil.move(ex_name, ".\\Completed_files" + iter_rand)
+    try:
+        # move the current file to the completed directory
+        shutil.move(ex_name, ".\\Outputs_" + iter_rand + "\\Completed_files" + iter_rand)
+    except shutil.Error as err:
+        logf.write(str(err) + '\n')
+        # errors.extend(err.args[0])
 
 
 # get webdriver for chrome chromedriver.exe path - this would have to change for everyone
 driver = webdriver.Chrome('C:\\Users\\yangb\\Desktop\\chromedriver.exe')
 driver.maximize_window()  # maxout the window size
+
 # sets the window size. This size is specified from screenshot reasons
 # driver.set_window_size(1100, 1500)  # ideal was 1100, 1500
-first_name_arr = []
-last_name_arr = []
-new_arr_f = []
 done = True  # flagger variable for flagging the process
 # getting the file from the working_dir
 ex_name = get_working_filename()  # excel file name (database)
@@ -95,7 +106,7 @@ r_url = 'https://exclusions.oig.hhs.gov/'
 # b_sheet.cell(row=b_sheet.max_row, column=1).value = 'Not on the list'
 def create_sheet():
     if 'Not Listed' not in ex.sheetnames:
-        ex.create_sheet('Not Listed')
+        ex.create_sheet('Not Listed\n')
         ex.save(ex_name)
     b_sheet = ex['Not Listed']
     return b_sheet
@@ -104,43 +115,53 @@ def create_sheet():
 # get name of one row
 # same function
 def get_name(r):
-    ex_last = str(r[0].value)
-    first_name_arr.append(ex_last)
-    ex_first = str(r[1].value)
-    last_name_arr.append(ex_first)
-    # return last_name_arr, first_name_arr
+    ex_last = str(r[0].value).replace(" ", "")
+    ex_first = str(r[1].value).replace(" ", "")
+
     return ex_last, ex_first
 
 
 # gets institution
-def get_institution(r):
-    institute = str(r[4].value)
+def get_institution(r, row_number):
+    if r[4].value is None:
+        logf.write('institution is empty in row ' + row_number + '\n')
+    else:
+        institute = str(r[4].value)
     return institute
 
 
 # gets the city state
-def get_city_state(r):
-    location = str(r[5].value)
+def get_city_state(r, row_number):
+    if r[5].value is None:
+        logf.write('institution is empty in row ' + row_number + '\n')
+    else:
+        location = str(r[5].value)
     return location
 
 
 # gets the name of the contributer
-def get_contributer(r):
-    contributer = str(r[7].value)
+def get_contributer(r, row_number):
+    if r[7].value is None:
+        logf.write('contributer is empty in row ' + row_number + '\n')
+    else:
+        contributer = str(r[7].value)
     return contributer
 
 
 # gets the date
-def get_date(r):
-    get_date = str(r[2].value)
+def get_date(r, row_number):
+    if r[2].value is None:
+        logf.write('There is no date in row ' + row_number + '\n')
+
+    else:
+        get_date = str(r[2].value)
     return get_date
 
 
 # does the job of clearnace checking for the first url
 def scrape_result_value(url, last_name_search, first_name_search, iter_rand):
     driver.get(url)
-    # print(driver.current_url)
-    # finds the sesarch bars for last name and first name
+    # finds the search bars for last name and first name
     last_name = driver.find_element_by_id('ctl00_cpExclusions_txtSPLastName')
     first_name = driver.find_element_by_id('ctl00_cpExclusions_txtSPFirstName')
     last_name.send_keys(last_name_search)
@@ -152,7 +173,8 @@ def scrape_result_value(url, last_name_search, first_name_search, iter_rand):
     driver.execute_script("window.scrollTo(0, 100)")
     # element = driver.find_element_by_id('content')
     #
-    driver.save_screenshot(".\\Screenshots" + iter_rand + "\\" + last_name_search + "_" + first_name_search + ".png")
+    driver.save_screenshot(
+        ".\\Outputs_" + iter_rand + "\\Screenshots" + iter_rand + "\\" + last_name_search + "_" + first_name_search + ".png")
     # opening up connection, grabbing the search results page
     page_html = driver.page_source
 
@@ -206,11 +228,8 @@ def insert_date(r, date_col):
     return r[date_col].value, r[date_col + 1].value
 
 
-b_sheet = create_sheet()
-
-
 # fills not listed autrhos in nex availble row in b sheet
-def set_not_listed_sheet(r):
+def set_not_listed_sheet(r, b_sheet):
     if str(r[6].value) == 'No, individual is not listed':
         b_sheet.cell(row=b_sheet.max_row + 1, column=1).value = str(r[0].value)
         for num in range(2, 7):
@@ -281,8 +300,9 @@ def create_doc(first_name_docx, last_name_docx, institution, city_state, contrib
     # document.add_paragraph()
     completion.add_run('Date check completed: ' + date_var + '\n').bold = True
 
-    document.add_picture('.\\Screenshots' + iter_rand + '\\' + last_name_docx + '_' + first_name_docx + '.png',
-                         width=Inches(6))
+    document.add_picture(
+        '.\\Outputs_' + iter_rand + '\\Screenshots' + iter_rand + '\\' + last_name_docx + '_' + first_name_docx + '.png',
+        width=Inches(6))
     document.add_paragraph(timestamp_res)
     # Set a cell background (shading) color to RGB D9D9D9.
     a_cell_1 = table.cell(0, 0)
@@ -316,11 +336,8 @@ def create_doc(first_name_docx, last_name_docx, institution, city_state, contrib
     document.add_page_break()
 
     document.save(
-        '.\\Debarment_files' + iter_rand + '\\' + last_name_docx + '_' + first_name_docx + '_' + d.strftime(
+        '.\\Outputs_' + iter_rand + '\\Debarment_files' + iter_rand + '\\' + last_name_docx + '_' + first_name_docx + '_' + d.strftime(
             '%d_%m_%Y') + '.docx')
-
-
-k = 1
 
 
 # all excel processing
@@ -329,6 +346,7 @@ def gener_tasks(iter_rand):
         if i == 0:
             continue
 
+        print(i)
         create_sheet()
         # gets the last name first name string
         l, f = get_name(j)
@@ -336,23 +354,34 @@ def gener_tasks(iter_rand):
         chk, timestamp_results, new_url = scrape_result_value(r_url, l, f, iter_rand)
         clr_check(chk, j, 6)  # store the result to the current row and result column excel
         insert_date(j, 2)
-        set_not_listed_sheet(j)  # sets the not listed dhseet
+        b_sheet = create_sheet()
+        set_not_listed_sheet(j, b_sheet)  # sets the not listed dhseet
         c_cell = str(sheet['G' + str(i)].value)
-        d_cell = str(sheet['H' + str(i)].value)
-        print(c_cell)
-        create_doc(f, l, get_institution(j), get_city_state(j), get_contributer(j), get_date(j), str(j[6].value),
+        row_number = str(i + 1)
+
+        create_doc(f, l, get_institution(j, row_number), get_city_state(j, row_number), get_contributer(j, row_number),
+                   get_date(j, row_number), str(j[6].value),
                    iter_rand, timestamp_results)
         done = True
         ex.save('db_check.xlsx')
 
 
+def string_man(file):
+    return os.path.splitext(file)[0]
+
+
 def execute_process():
+    filename_with_ext = str(get_working_filename())
+    with_ext = os.path.basename(filename_with_ext)
+    print(with_ext)  # name of the file
+    filename = string_man(with_ext)
+    print(filename)
     rand = str(random.random())
-    directory_structure(rand)  # creating all directory structure
-    gener_tasks(rand)  # starts the for each row
+    directory_structure(filename)  # creating all directory structure
+    gener_tasks(filename)  # starts the for each row
 
     if done:
-        mv_dir_structure(rand)
+        mv_dir_structure(filename)  # moving the database to the completed directory
     else:
         print("the file processing is not done")
 
