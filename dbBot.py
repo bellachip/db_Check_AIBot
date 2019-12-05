@@ -2,6 +2,7 @@
 # ===========================================================#
 ## bot version 1
 import os
+
 from docx import Document
 from docx.shared import Inches
 import openpyxl
@@ -37,6 +38,11 @@ def directory_structure(iter_rand):
 
     # error handlers for creating directory for screenshots and debarment file
     try:
+        if os.path.exists(output) is True :
+            continue
+        else :
+
+
         os.mkdir(output)
     except OSError as e:
         print("Creation of the directory %s failed" % output)
@@ -480,10 +486,10 @@ def execute_process():
     print(if_file_created(last_array))
     ex.save(ex_name)
 
-    if done:
-        mv_dir_structure(filename)  # moving the database to the completed directory
-    else:
-        print("the file processing is not done")
+    # if done:
+    #     mv_dir_structure(filename)  # moving the database to the completed directory
+    # else:
+    #     print("the file processing is not done")
 
 
 start_time = time.time()
