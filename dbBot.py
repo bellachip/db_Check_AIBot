@@ -1,5 +1,6 @@
 #!/bin/python
-from bs4 import BeautifulSoup as soup
+# ===========================================================#
+## bot version 1
 import os
 from docx import Document
 from docx.shared import Inches
@@ -13,8 +14,10 @@ import datetime
 import random
 from datetime import timedelta
 import shutil
+import time
 
 Root_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot'
+
 # change directory
 os.chdir('C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot')
 logf = open(Root_path + 'log_file.txt', 'w')
@@ -23,11 +26,14 @@ logf = open(Root_path + 'log_file.txt', 'w')
 # define the name of the directory to be created
 # directory structure for screenshots, files, and compeleted files
 def directory_structure(iter_rand):
-    output = Root_path + 'Outputs_' + iter_rand
-    flagged_authors = output + '\\Flagged_authors_files_' + iter_rand
-    debarment_file_path = output + '\\Debarment_files_' + iter_rand
-    screenshots_path = output + '\\Screenshots_' + iter_rand
-    completed_file_path = output + '\\Completed_file_' + iter_rand
+    output = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Outputs_' + iter_rand
+    debarment_file_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Outputs_' + iter_rand + '\\Debarment_files_' + iter_rand
+    screenshots_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Outputs_' + iter_rand + '\\Screenshots_' + iter_rand
+    completed_file_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Outputs_' + iter_rand + '\\Completed_files_' + iter_rand
+    flagged_authors = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Outputs_' + iter_rand + '\\Flagged_Authors_' + iter_rand
+    # debarment_file_path = output + '\\Debarment_files_' + iter_rand
+    # screenshots_path = output + '\\Screenshots_' + iter_rand
+    # completed_file_path = output + '\\Completed_file_' + iter_rand
 
     # error handlers for creating directory for screenshots and debarment file
     try:
@@ -77,24 +83,30 @@ def directory_structure(iter_rand):
 # gets the input variable for the process execution (excel file, list of authors)
 def get_working_filename():
     if len(os.listdir('.\\working_dir')) == 0:
-        logf.write('empty directory\n')
+        logf.write('The directory is empty, please upload a file to the working directory\n')
     elif len(os.listdir('.\\working_dir')) > 1:
-        logf.write('too many files, one directory at a time\n')
+        logf.write('Too many files, please upload one execel file at a time\n')
     else:
         for file in os.listdir('.\\working_dir'):  # iterate through all the files
             if file.endswith('.xlsx'):  # identify if the file ends with.xlsx
                 move_file = os.path.join(".\\working_dir", file)  # gets the file in working directory
                 return move_file
             else:  # if file not ends with .xlsx then its not an excel file
-                logf.write('not an excel file\n')
+                logf.write('Not an excel file\n')
 
 
 def check_not_missed(iter_rand):
     array = []
     for file in os.listdir(
-            '.\\Outputs_' + iter_rand + '\\Debarment_files' + iter_rand):  # iterate through all the files
+            '.\\Outputs_' + iter_rand + '\\Debarment_files_' + iter_rand):  # iterate through all the files
         split_filename = file.split('_')
         array.append(split_filename[0])  # gets only the last name
+
+    for flagged_file in os.listdir(
+            '.\\Outputs_' + iter_rand + '\\Flagged_Authors_' + iter_rand):  # iterate through all the files
+        split_filename = flagged_file.split('_')
+        array.append(split_filename[0])  # gets only the last name
+
     return array
 
 
@@ -102,15 +114,20 @@ def check_not_missed(iter_rand):
 def mv_dir_structure(iter_rand):
     try:
         # move the current file to the completed directory
-        shutil.move(ex_name, ".\\Outputs_" + iter_rand + "\\Completed_files" + iter_rand)
+        shutil.move(ex_name, ".\\Outputs_" + iter_rand + "\\Completed_files_" + iter_rand)
     except shutil.Error as err:
         logf.write(str(err) + '\n')
         # errors.extend(err.args[0])
 
 
-# get webdriver for chrome chromedriver.exe path - this would have to change for everyone
-driver = webdriver.Chrome('C:\\Users\\yangb\\Desktop\\chromedriver.exe')
-driver.maximize_window()  # maxout the window size
+try:
+    # get webdriver for chrome chromedriver.exe path - this would have to change for everyone
+    driver = webdriver.Chrome('C:\\Users\\yangb\\Desktop\\chromedriver.exe')
+    driver.maximize_window()  # maxout the window size
+except Exception as err:
+    driver.close()
+    driver.quit()
+    logf.write(str(err))
 
 # sets the window size. This size is specified from screenshot reasons
 # driver.set_window_size(1100, 1500)  # ideal was 1100, 1500
@@ -182,7 +199,6 @@ def get_contributer(r, row_number):
 def get_date(r, row_number):
     if r[2].value is None:
         logf.write('There is no date in row ' + row_number + '\n')
-
     else:
         get_date = str(r[2].value)
     return get_date
@@ -199,12 +215,12 @@ def scrape_result_value(url, last_name_search, first_name_search, iter_rand):
     last_name.send_keys(Keys.ENTER)
     # first_name.send_keys(Keys.ENTER)
 
-    # scrolls the window
-    driver.execute_script("window.scrollTo(0, 100)")
-    # element = driver.find_element_by_id('content')
-    #
-    driver.save_screenshot(
-        ".\\Outputs_" + iter_rand + "\\Screenshots" + iter_rand + "\\" + last_name_search + "_" + first_name_search + ".png")
+    # # scrolls the window
+    # driver.execute_script("window.scrollTo(0, 100)")
+    # # element = driver.find_element_by_id('content')
+    # #
+    # driver.save_screenshot(
+    #     ".\\Outputs_" + iter_rand + "\\Screenshots_" + iter_rand + "\\" + last_name_search + "_" + first_name_search + ".png")
     # opening up connection, grabbing the search results page
     page_html = driver.page_source
 
@@ -221,9 +237,19 @@ def scrape_result_value(url, last_name_search, first_name_search, iter_rand):
     search_timestamp = search_conducted.p.text
     print(search_timestamp)
     if noe is not None:
+        # scrolls the window
+        driver.execute_script("window.scrollTo(0, 100)")
+        # element = driver.find_element_by_id('content')
+        #
+        driver.save_screenshot(
+            ".\\Outputs_" + iter_rand + "\\Screenshots_" + iter_rand + "\\" + last_name_search + "_" + first_name_search + ".png")
         no_results = "No Results"
     else:  # else then that means there is results for the person so scrape the info of the person
         # gets the rows
+        driver.execute_script("window.scrollTo(0, 300)")
+        driver.save_screenshot(
+            ".\\Outputs_" + iter_rand + "\\Screenshots_" + iter_rand + "\\" + last_name_search + "_" + first_name_search + ".png")
+
         rows = page_soup.find("table", {"class": "leie_search_results"}).find("tbody").findAll("tr")
 
         # iterate through each row
@@ -331,7 +357,7 @@ def create_doc(first_name_docx, last_name_docx, institution, city_state, contrib
     completion.add_run('Date check completed: ' + date_var + '\n').bold = True
 
     document.add_picture(
-        '.\\Outputs_' + iter_rand + '\\Screenshots' + iter_rand + '\\' + last_name_docx + '_' + first_name_docx + '.png',
+        '.\\Outputs_' + iter_rand + '\\Screenshots_' + iter_rand + '\\' + last_name_docx + '_' + first_name_docx + '.png',
         width=Inches(6))
     document.add_paragraph(timestamp_res)
     # Set a cell background (shading) color to RGB D9D9D9.
@@ -365,12 +391,12 @@ def create_doc(first_name_docx, last_name_docx, institution, city_state, contrib
 
     if a_res_value == 'No, individual is not listed':
         document.save(
-            '.\\Outputs_' + iter_rand + '\\Debarment_files' + iter_rand + '\\' + last_name_docx + '_' + first_name_docx + '_' + d.strftime(
+            '.\\Outputs_' + iter_rand + '\\Debarment_files_' + iter_rand + '\\' + last_name_docx + '_' + first_name_docx + '_' + d.strftime(
                 '%d_%m_%Y') + '.docx')
 
     else:
         document.save(
-            '.\\Outputs_' + iter_rand + '\\Flagged_Authors' + iter_rand + '\\' + last_name_docx + '_' + first_name_docx + '_' + d.strftime(
+            '.\\Outputs_' + iter_rand + '\\Flagged_Authors_' + iter_rand + '\\' + last_name_docx + '_' + first_name_docx + '_' + d.strftime(
                 '%d_%m_%Y') + '.docx')
 
 
@@ -402,10 +428,11 @@ def gener_tasks(iter_rand):
 
 # fills not listed autrhos in nex availble row in b sheet
 def missed_list_sheet(r, c_sheet):
-
     c_sheet.cell(row=c_sheet.max_row + 1, column=1).value = str(r[0].value)
     for num in range(2, 7):
         c_sheet.cell(row=c_sheet.max_row, column=num).value = str(r[num - 1].value)
+
+
 ex.save(ex_name)
 
 
@@ -459,5 +486,7 @@ def execute_process():
         print("the file processing is not done")
 
 
+start_time = time.time()
 execute_process()
+print("--- %s seconds ---" % (time.time() - start_time))
 driver.close()
