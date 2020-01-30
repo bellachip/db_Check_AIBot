@@ -1,8 +1,8 @@
 #!/bin/python
 # ===========================================================#
-## bot version 1
-import os
+## bot version 2
 
+import os
 from docx import Document
 from docx.shared import Inches
 import openpyxl
@@ -17,33 +17,31 @@ from datetime import timedelta
 import shutil
 import time
 
-Root_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot'
+Root_path = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckBot\\'
 
 # change directory
-os.chdir('C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot')
+os.chdir('X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckBot')
 logf = open(Root_path + 'log_file.txt', 'w')
 
 
 # define the name of the directory to be created
 # directory structure for screenshots, files, and compeleted files
 def directory_structure(iter_rand):
-    output = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Outputs_' + iter_rand
-    debarment_file_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Outputs_' + iter_rand + '\\Debarment_files_' + iter_rand
-    screenshots_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Outputs_' + iter_rand + '\\Screenshots_' + iter_rand
-    completed_file_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Outputs_' + iter_rand + '\\Completed_files_' + iter_rand
-    flagged_authors = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBot\\Outputs_' + iter_rand + '\\Flagged_Authors_' + iter_rand
+    output = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckBot\\Outputs_' + iter_rand
+    debarment_file_path = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckBot\\Outputs_' + iter_rand + '\\Debarment_files_' + iter_rand
+    screenshots_path = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckBot\\Outputs_' + iter_rand + '\\Screenshots_' + iter_rand
+    completed_file_path = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckBot\\Outputs_' + iter_rand + '\\Completed_files_' + iter_rand
+    flagged_authors = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckBot\\Outputs_' + iter_rand + '\\Flagged_Authors_' + iter_rand
     # debarment_file_path = output + '\\Debarment_files_' + iter_rand
     # screenshots_path = output + '\\Screenshots_' + iter_rand
     # completed_file_path = output + '\\Completed_file_' + iter_rand
 
     # error handlers for creating directory for screenshots and debarment file
+
+    # if os.path.exists(output) is False:
     try:
-        if os.path.exists(output) is True :
-            continue
-        else :
-
-
         os.mkdir(output)
+
     except OSError as e:
         print("Creation of the directory %s failed" % output)
         logf.write('creation of the directory {0}:{1} failed\n'.format(str(output), str(e)))
@@ -128,7 +126,7 @@ def mv_dir_structure(iter_rand):
 
 try:
     # get webdriver for chrome chromedriver.exe path - this would have to change for everyone
-    driver = webdriver.Chrome('C:\\Users\\yangb\\Desktop\\chromedriver.exe')
+    driver = webdriver.Chrome('X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckBot\\chromedriver_win32_v78\\chromedriver.exe')
     driver.maximize_window()  # maxout the window size
 except Exception as err:
     driver.close()
@@ -429,7 +427,7 @@ def gener_tasks(iter_rand):
                    get_date(j, row_number), str(j[6].value),
                    iter_rand, timestamp_results)
         done = True
-        ex.save('db_check.xlsx')
+        ex.save(ex_name)
 
 
 # fills not listed autrhos in nex availble row in b sheet
@@ -437,9 +435,6 @@ def missed_list_sheet(r, c_sheet):
     c_sheet.cell(row=c_sheet.max_row + 1, column=1).value = str(r[0].value)
     for num in range(2, 7):
         c_sheet.cell(row=c_sheet.max_row, column=num).value = str(r[num - 1].value)
-
-
-ex.save(ex_name)
 
 
 def if_file_created(names_array):
@@ -478,7 +473,9 @@ def execute_process():
     filename = string_man(with_ext)
     print(filename)
     rand = str(random.random())
+    # if os.path.exists(output) is False:
     directory_structure(filename)  # creating all directory structure
+
     gener_tasks(filename)  # starts the for each row
 
     last_array = check_not_missed(filename)  # array of file name
@@ -486,10 +483,10 @@ def execute_process():
     print(if_file_created(last_array))
     ex.save(ex_name)
 
-    # if done:
-    #     mv_dir_structure(filename)  # moving the database to the completed directory
-    # else:
-    #     print("the file processing is not done")
+    if done:
+        mv_dir_structure(filename)  # moving the database to the completed directory
+    else:
+        print("the file processing is not done")
 
 
 start_time = time.time()
