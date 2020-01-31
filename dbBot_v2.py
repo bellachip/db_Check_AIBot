@@ -16,22 +16,23 @@ import random
 from datetime import timedelta
 import shutil
 import time
+import re
 
-Root_path = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckBot\\'
+Root_path = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\'
 
 # change directory
-os.chdir('X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckBot')
+os.chdir("X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults")
 logf = open(Root_path + 'log_file.txt', 'w')
 
 
 # define the name of the directory to be created
 # directory structure for screenshots, files, and compeleted files
 def directory_structure(iter_rand):
-    output = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckBot\\Outputs_' + iter_rand
-    debarment_file_path = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckBot\\Outputs_' + iter_rand + '\\Debarment_files_' + iter_rand
-    screenshots_path = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckBot\\Outputs_' + iter_rand + '\\Screenshots_' + iter_rand
-    completed_file_path = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckBot\\Outputs_' + iter_rand + '\\Completed_files_' + iter_rand
-    flagged_authors = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckBot\\Outputs_' + iter_rand + '\\Flagged_Authors_' + iter_rand
+    output = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\Outputs_' + iter_rand
+    debarment_file_path = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\Outputs_' + iter_rand + '\\Debarment_files_' + iter_rand
+    screenshots_path = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\Outputs_' + iter_rand + '\\Screenshots_' + iter_rand
+    completed_file_path = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\Outputs_' + iter_rand + '\\Completed_files_' + iter_rand
+    flagged_authors = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\Outputs_' + iter_rand + '\\Flagged_Authors_' + iter_rand
     # debarment_file_path = output + '\\Debarment_files_' + iter_rand
     # screenshots_path = output + '\\Screenshots_' + iter_rand
     # completed_file_path = output + '\\Completed_file_' + iter_rand
@@ -69,7 +70,8 @@ def directory_structure(iter_rand):
 
     try:
         os.mkdir(debarment_file_path)
-    except OSError:
+    except OSError as e:
+
         print("Creation of the directory %s failed" % debarment_file_path)
         logf.write('creation of the directory {0}:{1} failed\n'.format(str(debarment_file_path), str(e)))
     else:
@@ -77,7 +79,7 @@ def directory_structure(iter_rand):
 
     try:
         os.mkdir(completed_file_path)
-    except OSError:
+    except OSError as e:
         print("Creation of the directory %s failed" % completed_file_path)
         logf.write('creation of the directory {0}:{1} failed\n'.format(str(completed_file_path), str(e)))
     else:
@@ -126,7 +128,8 @@ def mv_dir_structure(iter_rand):
 
 try:
     # get webdriver for chrome chromedriver.exe path - this would have to change for everyone
-    driver = webdriver.Chrome('X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckBot\\chromedriver_win32_v78\\chromedriver.exe')
+    driver = webdriver.Chrome(
+        'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\chromedriver_win32_v78\\chromedriver.exe')
     driver.maximize_window()  # maxout the window size
 except Exception as err:
     driver.close()
@@ -139,7 +142,8 @@ done = True  # flagger variable for flagging the process
 # getting the file from the working_dir
 ex_name = get_working_filename()  # excel file name (database)
 ex = openpyxl.load_workbook(ex_name)  # opens the excel
-sheet = ex['Sheet1']  # gets the first tab sheet
+# sheet =
+sheet = ex[ex.sheetnames[0]]  # gets the first tab sheet
 
 # url 1 for search
 r_url = 'https://exclusions.oig.hhs.gov/'
@@ -166,10 +170,94 @@ def create_sheet_c():
 # get name of one row
 # same function
 def get_name(r):
-    ex_last = str(r[0].value).replace(" ", "")
-    ex_first = str(r[1].value).replace(" ", "")
+    # initializing bad_chars_list
+    bad_chars = [';', '[', '@', '_', '!', '#', '$', '%', '^', '&', '*', '(', ')', '<', '>', '?', '/', '\\',
+                 '|', '}', '{', '~', ':', ']']
+    regex = re.compile("[@_!#$%^&*()<>?/\|}{~:]")
 
-    return ex_last, ex_first
+    # get the first name
+    firstname = str(r[1].value)
+    # split the first name into an array
+    firstname_array = firstname.split()
+    # if an array has more than 1 string then do the checking
+    if len(firstname_array) > 1:
+        counter = 1
+        # if the length of the second string is 1 then authomatically remove
+        if len(firstname_array[counter]) == 1:
+            firstname = firstname_array[0]  # removed the middle name
+            print(firstname)
+            lastname = str(r[0].value).replace(" ", "")
+            print(lastname)
+            return lastname, firstname
+        # else if the length is 2 then identify if there is a period
+        elif len(firstname_array[counter]) == 2:
+            string_name = firstname_array[counter]
+            # if there is a period then remove the whole thing
+            if "." in string_name:
+                firstname = firstname_array[0]
+                print(firstname)
+                lastname = str(r[0].value).replace(" ", "")
+                print(lastname)
+                return lastname, firstname
+            else:
+                if regex.search(firstname_array[counter]) is None:
+                    firstname = firstname_array[0] + " " + firstname_array[1]
+                    print(firstname)
+
+                else:
+
+                    for i in bad_chars:
+                        firstname = firstname.replace(i, '')
+                        print(firstname)
+
+                lastname = str(r[0].value).replace(" ", "")
+                print(lastname)
+
+                return lastname, firstname
+
+        elif len(firstname_array[counter]) > 2:
+            # firstname = firstname_array[0] + " " + firstname_array[1]
+            # print(firstname)
+            # lastname = str(r[0].value).replace(" ", "")
+            # print(lastname)
+            if regex.search(firstname_array[counter]) is None:
+                firstname = firstname_array[0] + " " + firstname_array[1]
+                print(firstname)
+
+            else:
+                firstname = firstname_array[0].replace(" ", "")
+                # for i in bad_chars:
+                #     firstname = firstname.replace(i, '')
+                print(firstname)
+            lastname = str(r[0].value).replace(" ", "")
+            print(lastname)
+
+            return lastname, firstname
+
+    else:
+
+        if regex.search(firstname) is None:
+            firstname = firstname
+            print(firstname)
+
+        else:
+            for i in bad_chars:
+                firstname = firstname.replace(i, '')
+                print(firstname)
+        lastname = str(r[0].value).replace(" ", "")
+        print(lastname)
+
+        # firstname = str(r[1].value).replace(" ", "")
+        # print(firstname)
+        # lastname = str(r[0].value).replace(" ", "")
+        # print(lastname)
+
+        return lastname, firstname
+
+        # else if there is no period but only one letther then remove the whole thing
+        # else if no period then consider it as part of the first name
+        # else if the len is more than 2 then consider it as part of the first name
+    # else remove all spaces
 
 
 # gets institution
