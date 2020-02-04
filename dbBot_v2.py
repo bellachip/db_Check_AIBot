@@ -498,10 +498,18 @@ def gener_tasks(iter_rand):
         if i == 0:
             continue
 
-        print(i)
+        last_row = sheet.max_row
+        while sheet.cell(column=1, row=last_row).value is None and last_row > 0:
+            last_row -= 1
+        last_col_a_value = sheet.cell(column=1, row=last_row).value
         create_sheet()
         # gets the last name first name string
         l, f = get_name(j)
+        print(l,f)
+        if l == "None" or l is None:
+            print("there shouold be an error here ")
+            continue
+
         # gets the scraped data of result value and timestamp and does the screenshot
         chk, timestamp_results, new_url = scrape_result_value(r_url, l, f, iter_rand)
         clr_check(chk, j, 6)  # store the result to the current row and result column excel
@@ -510,6 +518,7 @@ def gener_tasks(iter_rand):
         set_not_listed_sheet(j, b_sheet)  # sets the not listed dhseet
         c_cell = str(sheet['G' + str(i)].value)
         row_number = str(i + 1)
+        print('Row Number: ' + row_number)
 
         create_doc(f, l, get_institution(j, row_number), get_city_state(j, row_number), get_contributer(j, row_number),
                    get_date(j, row_number), str(j[6].value),
@@ -580,4 +589,5 @@ def execute_process():
 start_time = time.time()
 execute_process()
 print("--- %s seconds ---" % (time.time() - start_time))
+print("closing connection")
 driver.close()
