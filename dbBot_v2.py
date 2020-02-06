@@ -8,6 +8,7 @@ from docx.shared import Inches
 import openpyxl
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
 from urllib.request import urlopen as uReq
 from bs4 import BeautifulSoup as soup
 from docx.oxml.shared import OxmlElement, qn
@@ -128,9 +129,22 @@ def mv_dir_structure(iter_rand):
 
 try:
     # get webdriver for chrome chromedriver.exe path - this would have to change for everyone
-    driver = webdriver.Chrome(
+     driver = webdriver.Chrome(
         'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\chromedriver_win32_v78\\chromedriver.exe')
-    driver.maximize_window()  # maxout the window size
+
+     chrome_options = Options()
+     chrome_options.add_argument("--headless")
+
+     driver = webdriver.Chrome(chrome_options=chrome_options,executable_path=
+    'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment '
+    'Checks\\DebarmentCheckResults\\chromedriver_win32_v78\\chromedriver.exe')
+
+# chrome_options.binary_location = ''
+    #driver = webdriver.PhantomJS()
+
+    #driver.set_window_size(1120, 550)
+    #  driver.get("https://duckduckgo.com/")
+   # driver.maximize_window()  # maxout the window size
 except Exception as err:
     driver.close()
     driver.quit()
