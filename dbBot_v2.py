@@ -9,6 +9,7 @@ import openpyxl
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from urllib.request import urlopen as uReq
+from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup as soup
 from docx.oxml.shared import OxmlElement, qn
 import datetime
@@ -23,6 +24,8 @@ Root_path = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheck
 # change directory
 os.chdir("X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults")
 logf = open(Root_path + 'log_file.txt', 'w')
+
+driver = ""
 
 
 # define the name of the directory to be created
@@ -90,8 +93,10 @@ def directory_structure(iter_rand):
 def get_working_filename():
     if len(os.listdir('.\\working_dir')) == 0:
         logf.write('The directory is empty, please upload a file to the working directory\n')
+        print('Error: The directory is empty, please upload a file to the working directory\n')
     elif len(os.listdir('.\\working_dir')) > 1:
         logf.write('Too many files, please upload one execel file at a time\n')
+        print('Error: Too many files, please upload one execel file at a time\n')
     else:
         for file in os.listdir('.\\working_dir'):  # iterate through all the files
             if file.endswith('.xlsx'):  # identify if the file ends with.xlsx
@@ -99,6 +104,7 @@ def get_working_filename():
                 return move_file
             else:  # if file not ends with .xlsx then its not an excel file
                 logf.write('Not an excel file\n')
+                print('Error: The file is not an excel file. Please upload an excel file\n')
 
 
 def check_not_missed(iter_rand):
@@ -121,16 +127,25 @@ def mv_dir_structure(iter_rand):
     try:
         # move the current file to the completed directory
         shutil.move(ex_name, ".\\Outputs_" + iter_rand + "\\Completed_files_" + iter_rand)
+        print(f'Task: Moving {ex} to the completed folder')
     except shutil.Error as err:
         logf.write(str(err) + '\n')
-        # errors.extend(err.args[0])
+        print(str(err))
 
 
 try:
     # get webdriver for chrome chromedriver.exe path - this would have to change for everyone
     driver = webdriver.Chrome(
         'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\chromedriver_win32_v78\\chromedriver.exe')
-    driver.maximize_window()  # maxout the window size
+
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+
+    driver = webdriver.Chrome(chrome_options=chrome_options,
+                              executable_path='C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBotRoot\\DebarmentCheckAIBot\\chromedriver_win32_v78\\chromedriver.exe')
+
+    print('Task: Chrome successfully opened')
+# driver.maximize_window()  # maxout the window size
 except Exception as err:
     driver.close()
     driver.quit()
@@ -185,9 +200,9 @@ def get_name(r):
         # if the length of the second string is 1 then authomatically remove
         if len(firstname_array[counter]) == 1:
             firstname = firstname_array[0]  # removed the middle name
-            print(firstname)
+
             lastname = str(r[0].value).replace(" ", "")
-            print(lastname)
+
             return lastname, firstname
         # else if the length is 2 then identify if there is a period
         elif len(firstname_array[counter]) == 2:
@@ -195,23 +210,21 @@ def get_name(r):
             # if there is a period then remove the whole thing
             if "." in string_name:
                 firstname = firstname_array[0]
-                print(firstname)
+
                 lastname = str(r[0].value).replace(" ", "")
-                print(lastname)
+
                 return lastname, firstname
             else:
                 if regex.search(firstname_array[counter]) is None:
                     firstname = firstname_array[0] + " " + firstname_array[1]
-                    print(firstname)
+
 
                 else:
 
                     for i in bad_chars:
                         firstname = firstname.replace(i, '')
-                        print(firstname)
 
                 lastname = str(r[0].value).replace(" ", "")
-                print(lastname)
 
                 return lastname, firstname
 
@@ -222,15 +235,14 @@ def get_name(r):
             # print(lastname)
             if regex.search(firstname_array[counter]) is None:
                 firstname = firstname_array[0] + " " + firstname_array[1]
-                print(firstname)
+
 
             else:
                 firstname = firstname_array[0].replace(" ", "")
                 # for i in bad_chars:
                 #     firstname = firstname.replace(i, '')
-                print(firstname)
+
             lastname = str(r[0].value).replace(" ", "")
-            print(lastname)
 
             return lastname, firstname
 
@@ -238,14 +250,13 @@ def get_name(r):
 
         if regex.search(firstname) is None:
             firstname = firstname
-            print(firstname)
+
 
         else:
             for i in bad_chars:
                 firstname = firstname.replace(i, '')
-                print(firstname)
+
         lastname = str(r[0].value).replace(" ", "")
-        print(lastname)
 
         # firstname = str(r[1].value).replace(" ", "")
         # print(firstname)
@@ -327,7 +338,8 @@ def scrape_result_value(url, last_name_search, first_name_search, iter_rand):
     noe = page_soup.find("div", {"id": "ctl00_cpExclusions_pnlEmpty"})
     search_conducted = page_soup.find("div", {"class": "timeStampResults"})
     search_timestamp = search_conducted.p.text
-    print(search_timestamp)
+    print(f"Task: Search conducted for {first_name_search} {last_name_search}")
+    print(f"Task: Scraping results for {first_name_search} {last_name_search}")
     if noe is not None:
         # scrolls the window
         driver.execute_script("window.scrollTo(0, 100)")
@@ -498,16 +510,18 @@ def gener_tasks(iter_rand):
         if i == 0:
             continue
 
+
         last_row = sheet.max_row
         while sheet.cell(column=1, row=last_row).value is None and last_row > 0:
             last_row -= 1
         last_col_a_value = sheet.cell(column=1, row=last_row).value
         create_sheet()
         # gets the last name first name string
+        row_number = str(i + 1)
+        print('Row Number: ' + row_number)
         l, f = get_name(j)
-        print(l,f)
+
         if l == "None" or l is None:
-            print("there shouold be an error here ")
             continue
 
         # gets the scraped data of result value and timestamp and does the screenshot
@@ -517,12 +531,12 @@ def gener_tasks(iter_rand):
         b_sheet = create_sheet()
         set_not_listed_sheet(j, b_sheet)  # sets the not listed dhseet
         c_cell = str(sheet['G' + str(i)].value)
-        row_number = str(i + 1)
-        print('Row Number: ' + row_number)
+
 
         create_doc(f, l, get_institution(j, row_number), get_city_state(j, row_number), get_contributer(j, row_number),
                    get_date(j, row_number), str(j[6].value),
                    iter_rand, timestamp_results)
+        print(f'Task: files created for {f} {l}')
         done = True
         ex.save(ex_name)
 
@@ -535,6 +549,7 @@ def missed_list_sheet(r, c_sheet):
 
 
 def if_file_created(names_array):
+
     for i, j in enumerate(sheet.iter_rows()):
         if i == 0:
             continue
@@ -568,7 +583,7 @@ def execute_process():
     with_ext = os.path.basename(filename_with_ext)
     print(with_ext)  # name of the file
     filename = string_man(with_ext)
-    print(filename)
+    print(f"{filename}")
     rand = str(random.random())
     # if os.path.exists(output) is False:
     directory_structure(filename)  # creating all directory structure
@@ -591,3 +606,4 @@ execute_process()
 print("--- %s seconds ---" % (time.time() - start_time))
 print("closing connection")
 driver.close()
+print("Process completed. You may exit the window.")
