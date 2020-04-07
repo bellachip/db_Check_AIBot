@@ -1,11 +1,13 @@
 #!/bin/python
 # ===========================================================#
-## bot version 2
+## bot version 2. This is the silent or headless version. Runs all procceses in the background
 
 import os
 from docx import Document
 from docx.shared import Inches
+from docx.shared import Pt
 import openpyxl
+from openpyxl import load_workbook
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from urllib.request import urlopen as uReq
@@ -19,26 +21,23 @@ import shutil
 import time
 import re
 
-Root_path = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\'
+
+Root_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBotRoot\\DebarmentCheckAIBot'
 
 # change directory
-os.chdir("X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults")
+os.chdir("C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBotRoot\\DebarmentCheckAIBot")
 logf = open(Root_path + 'log_file.txt', 'w')
 
 driver = ""
 
-
 # define the name of the directory to be created
 # directory structure for screenshots, files, and compeleted files
 def directory_structure(iter_rand):
-    output = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\Outputs_' + iter_rand
-    debarment_file_path = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\Outputs_' + iter_rand + '\\Debarment_files_' + iter_rand
-    screenshots_path = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\Outputs_' + iter_rand + '\\Screenshots_' + iter_rand
-    completed_file_path = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\Outputs_' + iter_rand + '\\Completed_files_' + iter_rand
-    flagged_authors = 'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\Outputs_' + iter_rand + '\\Flagged_Authors_' + iter_rand
-    # debarment_file_path = output + '\\Debarment_files_' + iter_rand
-    # screenshots_path = output + '\\Screenshots_' + iter_rand
-    # completed_file_path = output + '\\Completed_file_' + iter_rand
+    output = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBotRoot\\DebarmentCheckAIBot\\Outputs_' + iter_rand
+    debarment_file_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBotRoot\\DebarmentCheckAIBot\\Outputs_' + iter_rand + '\\Debarment_files_' + iter_rand
+    screenshots_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBotRoot\\DebarmentCheckAIBot\\Outputs_' + iter_rand + '\\Screenshots_' + iter_rand
+    completed_file_path = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBotRoot\\DebarmentCheckAIBot\\Outputs_' + iter_rand + '\\Completed_files_' + iter_rand
+    flagged_authors = 'C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBotRoot\\DebarmentCheckAIBot\\Outputs_' + iter_rand + '\\Flagged_Authors_' + iter_rand
 
     # error handlers for creating directory for screenshots and debarment file
 
@@ -133,22 +132,28 @@ def mv_dir_structure(iter_rand):
         print(str(err))
 
 
+
 try:
     # get webdriver for chrome chromedriver.exe path - this would have to change for everyone
-    driver = webdriver.Chrome(
-        'X:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\chromedriver_win32_v78\\chromedriver.exe')
+    # driver = webdriver.Chrome(
+    # 'Y:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\chromedriver_win32\\chromedriver.exe')
 
     chrome_options = Options()
+    # chrome_options.add_argument("--start-maximized")
+    chrome_options.add_argument(f'window-size={1024}x{600}')
     chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--hide-scrollbars")
+
 
     driver = webdriver.Chrome(chrome_options=chrome_options,
-                              executable_path='C:\\Users\\yangb\\PycharmProjects\\DebarmentCheckAIBotRoot\\DebarmentCheckAIBot\\chromedriver_win32_v78\\chromedriver.exe')
+                              executable_path='Y:\\LINKS\\#LINKS Initiatives\\AI\\Debarment Checks\\DebarmentCheckResults\\chromedriver_win32\\chromedriver.exe')
 
     print('Task: Chrome successfully opened')
-# driver.maximize_window()  # maxout the window size
+
 except Exception as err:
-    driver.close()
-    driver.quit()
+    # driver.close()
+    # driver.quit()
+
     logf.write(str(err))
 
 # sets the window size. This size is specified from screenshot reasons
@@ -156,7 +161,8 @@ except Exception as err:
 done = True  # flagger variable for flagging the process
 # getting the file from the working_dir
 ex_name = get_working_filename()  # excel file name (database)
-ex = openpyxl.load_workbook(ex_name)  # opens the excel
+
+ex = load_workbook(ex_name)  # opens the excel
 # sheet =
 sheet = ex[ex.sheetnames[0]]  # gets the first tab sheet
 
@@ -165,7 +171,6 @@ r_url = 'https://exclusions.oig.hhs.gov/'
 
 
 # new sheet for not listed people
-# b_sheet.cell(row=b_sheet.max_row, column=1).value = 'Not on the list'
 def create_sheet():
     if 'Flagged' not in ex.sheetnames:
         ex.create_sheet('Flagged')
@@ -217,8 +222,6 @@ def get_name(r):
             else:
                 if regex.search(firstname_array[counter]) is None:
                     firstname = firstname_array[0] + " " + firstname_array[1]
-
-
                 else:
 
                     for i in bad_chars:
@@ -281,20 +284,30 @@ def get_institution(r, row_number):
 
 
 # gets the city state
-def get_city_state(r, row_number):
+def get_city(r, row_number):
     if r[5].value is None:
         logf.write('institution is empty in row ' + row_number + '\n')
+        location = ' '
     else:
         location = str(r[5].value)
     return location
 
+# gets the city state
+def get_state(r, row_number):
+    if r[6].value is None:
+        logf.write('institution is empty in row ' + row_number + '\n')
+        state = ' '
+    else:
+        state = str(r[6].value)
+    return state
+
 
 # gets the name of the contributer
 def get_contributer(r, row_number):
-    if r[7].value is None:
+    if r[8].value is None:
         logf.write('contributer is empty in row ' + row_number + '\n')
     else:
-        contributer = str(r[7].value)
+        contributer = str(r[8].value)
     return contributer
 
 
@@ -310,6 +323,7 @@ def get_date(r, row_number):
 # does the job of clearnace checking for the first url
 def scrape_result_value(url, last_name_search, first_name_search, iter_rand):
     driver.get(url)
+    driver.maximize_window()  # maxout the window size
     # finds the search bars for last name and first name
     last_name = driver.find_element_by_id('ctl00_cpExclusions_txtSPLastName')
     first_name = driver.find_element_by_id('ctl00_cpExclusions_txtSPFirstName')
@@ -337,7 +351,9 @@ def scrape_result_value(url, last_name_search, first_name_search, iter_rand):
     # if "No Results" is in the page then return no results variable
     noe = page_soup.find("div", {"id": "ctl00_cpExclusions_pnlEmpty"})
     search_conducted = page_soup.find("div", {"class": "timeStampResults"})
+    # page_soup.find('span', {'id':"ctl00_cpExclusions_lblDatabaseDateTime" })
     search_timestamp = search_conducted.p.text
+
     print(f"Task: Search conducted for {first_name_search} {last_name_search}")
     print(f"Task: Scraping results for {first_name_search} {last_name_search}")
     if noe is not None:
@@ -397,14 +413,16 @@ def set_not_listed_sheet(r, b_sheet):
 
 
 # create_doc does the functionality does the job of automating generation of debarment word files for each author.
-def create_doc(first_name_docx, last_name_docx, institution, city_state, contributer, date_checked, a_res_value,
+def create_doc(first_name_docx, last_name_docx, institution, city, state, contributer, date_checked, a_res_value,
                iter_rand, timestamp_res
                ):
     d = datetime.datetime.today()  # current date
     date_var = d.strftime("%d-%B-%Y %H:%M:%S")  # format for creation date
-
+    print("new doc created")
     document = Document()  # generate new .doc document
-    document.add_heading('Debarment Check', 0)  # header title
+    heading = document.add_heading('Debarment Check', 0) # header title
+    # heading_style = document.styles['Heading 1']
+    # heading_style.size = Pt(20)
     p = document.add_paragraph(
         'Prior to being invited to participate in development/authoring of a publication sponsored '
         'by Genzyme/Sanofi, a debarment check must be completed for each US author.')
@@ -412,8 +430,8 @@ def create_doc(first_name_docx, last_name_docx, institution, city_state, contrib
     # table 1 for author name, name of institution
     records = (
         ('Author Name', first_name_docx + ' ' + last_name_docx),
-        ('Name of Institution', institution),
-        ('City, State', city_state)
+        ('Name of Institution/Organization', institution),
+        ('City, State', city + ', ' + state)
     )
 
     # data structure for table 2.
@@ -425,8 +443,8 @@ def create_doc(first_name_docx, last_name_docx, institution, city_state, contrib
     table = document.add_table(rows=1, cols=2)
     table.style = 'Table Grid'
     hdr_cells = table.rows[0].cells
-    hdr_cells[0].text = 'Information'
-    hdr_cells[1].text = 'Id'
+    hdr_cells[0].text = 'Author Information'
+    hdr_cells[1].text = ' '
 
     # iterates through the table and the list in records data structure
     for qty, id in records:
@@ -439,8 +457,8 @@ def create_doc(first_name_docx, last_name_docx, institution, city_state, contrib
     b_table = document.add_table(rows=1, cols=2)
     b_table.style = 'Table Grid'
     b_hdr_cells = b_table.rows[0].cells
-    b_hdr_cells[0].text = 'Debarment List'
-    b_hdr_cells[1].text = 'Findings'
+    b_hdr_cells[0].text = 'Source for Search'
+    b_hdr_cells[1].text = 'Result'
 
     for d_list, findings in debarment_list:
         b_row_cells = b_table.add_row().cells
@@ -471,10 +489,10 @@ def create_doc(first_name_docx, last_name_docx, institution, city_state, contrib
     a_ct = a_cell_2._tc.get_or_add_tcPr()
 
     a_cell_color_1 = OxmlElement('w:shd')
-    a_cell_color_1.set(qn('w:fill'), '#94C167')
+    a_cell_color_1.set(qn('w:fill'), '#E6E6FA')
 
     a_cell_color_2 = OxmlElement('w:shd')
-    a_cell_color_2.set(qn('w:fill'), '#94C167')
+    a_cell_color_2.set(qn('w:fill'), '#E6E6FA')
 
     a_co.append(a_cell_color_1)
     a_ct.append(a_cell_color_2)
@@ -485,10 +503,10 @@ def create_doc(first_name_docx, last_name_docx, institution, city_state, contrib
     b_ct = b_cell_2._tc.get_or_add_tcPr()
 
     b_cell_color_1 = OxmlElement('w:shd')
-    b_cell_color_1.set(qn('w:fill'), '#94C167')
+    b_cell_color_1.set(qn('w:fill'), '#E6E6FA')
 
     b_cell_color_2 = OxmlElement('w:shd')
-    b_cell_color_2.set(qn('w:fill'), '#94C167')
+    b_cell_color_2.set(qn('w:fill'), '#E6E6FA')
 
     b_co.append(b_cell_color_1)
     b_ct.append(b_cell_color_2)
@@ -526,15 +544,15 @@ def gener_tasks(iter_rand):
 
         # gets the scraped data of result value and timestamp and does the screenshot
         chk, timestamp_results, new_url = scrape_result_value(r_url, l, f, iter_rand)
-        clr_check(chk, j, 6)  # store the result to the current row and result column excel
+        clr_check(chk, j, 7)  # store the result to the current row and result column excel
         insert_date(j, 2)
         b_sheet = create_sheet()
         set_not_listed_sheet(j, b_sheet)  # sets the not listed dhseet
         c_cell = str(sheet['G' + str(i)].value)
 
 
-        create_doc(f, l, get_institution(j, row_number), get_city_state(j, row_number), get_contributer(j, row_number),
-                   get_date(j, row_number), str(j[6].value),
+        create_doc(f, l, get_institution(j, row_number), get_city(j, row_number), get_state(j, row_number), get_contributer(j, row_number),
+                   get_date(j, row_number), str(j[7].value),
                    iter_rand, timestamp_results)
         print(f'Task: files created for {f} {l}')
         done = True
@@ -605,5 +623,5 @@ start_time = time.time()
 execute_process()
 print("--- %s seconds ---" % (time.time() - start_time))
 print("closing connection")
-driver.close()
+# driver.close()
 print("Process completed. You may exit the window.")
